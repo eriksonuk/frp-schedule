@@ -23,8 +23,8 @@
     }
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:12px}
-  #sched-root table{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;min-width:560px}
+  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:6px}
+  #sched-root table{width:100%;border-collapse:separate;border-spacing:2px;table-layout:fixed;min-width:420px}
   .wrap{overflow-x:auto}
   button{font-family:inherit;background:transparent;border:.5px solid var(--text-muted);color:var(--text-primary);border-radius:8px;cursor:pointer}
   button:hover:not(:disabled){background:var(--surface-1)}
@@ -113,14 +113,14 @@ function cellStyle(v,isToday){
   return `background:${bg};color:${col};font-weight:${weight};${ring}`;
 }
 function renderTeam(title,rows,dates,todayCol){
-  let h=`<div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin:1.25rem 0 6px;">${title}</div>`;
-  h+=`<div class="wrap"><table><thead><tr><th style="width:88px;text-align:left;font-weight:500;font-size:12px;color:var(--text-muted);padding:4px 6px;">Agent</th>`;
-  DAYS.forEach((d,i)=>{const t=i===todayCol;h+=`<th style="text-align:center;font-weight:${t?'500':'400'};font-size:11px;color:${t?'var(--text-accent)':'var(--text-muted)'};padding:2px;">${d}<br><span style="font-size:10px;">${dates[i]||''}</span></th>`;});
+  let h=`<div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin:8px 0 4px;">${title}</div>`;
+  h+=`<div class="wrap"><table><thead><tr><th style="width:64px;text-align:left;font-weight:500;font-size:11px;color:var(--text-muted);padding:2px 4px;">Agent</th>`;
+  DAYS.forEach((d,i)=>{const t=i===todayCol;h+=`<th style="text-align:center;font-weight:${t?'500':'400'};font-size:10px;color:${t?'var(--text-accent)':'var(--text-muted)'};padding:1px;line-height:1.2;">${d}<br><span style="font-size:9px;">${dates[i]||''}</span></th>`;});
   h+=`</tr></thead><tbody>`;
-  if(!rows.length){ h+=`<tr><td colspan="8" style="font-size:12px;color:var(--text-muted);padding:8px 6px;">нет данных</td></tr>`; }
+  if(!rows.length){ h+=`<tr><td colspan="8" style="font-size:11px;color:var(--text-muted);padding:6px 4px;">нет данных</td></tr>`; }
   rows.forEach(([name,shifts])=>{
-    h+=`<tr><td style="font-size:12px;padding:4px 6px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</td>`;
-    for(let i=0;i<7;i++){const v=shifts[i]||"";h+=`<td style="text-align:center;font-size:11px;padding:5px 2px;border-radius:6px;${cellStyle(v,i===todayCol)}">${v||'—'}</td>`;}
+    h+=`<tr><td style="font-size:11px;padding:2px 4px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</td>`;
+    for(let i=0;i<7;i++){const v=shifts[i]||"";h+=`<td style="text-align:center;font-size:9.5px;padding:3px 1px;border-radius:4px;${cellStyle(v,i===todayCol)}">${v||'—'}</td>`;}
     h+=`</tr>`;
   });
   h+=`</tbody></table></div>`;
@@ -128,15 +128,14 @@ function renderTeam(title,rows,dates,todayCol){
 }
 function renderView(weeks,viewIdx,curIdx,todayCol){
   const w=weeks[viewIdx]; const tc=(viewIdx===curIdx)?todayCol:-1; let h="";
-  h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">`;
-  h+=`<div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:18px;font-weight:500;">${w.label}</span><span style="font-size:13px;color:var(--text-secondary);">MSK · ${w.dates[0]}–${w.dates[6]}</span></div>`;
-  h+=`<div style="display:flex;gap:6px;"><button id="s-prev" style="font-size:12px;padding:4px 10px;" ${viewIdx===0?'disabled':''}>‹ Prev</button><button id="s-next" style="font-size:12px;padding:4px 10px;" ${viewIdx===weeks.length-1?'disabled':''}>Next ›</button></div></div>`;
-  h+=`<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);margin-bottom:2px;">`;
-  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--bg-warning);vertical-align:middle;"></span> AL — отпуск</span>`;
-  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--bg-accent);vertical-align:middle;"></span> PH — праздник</span>`;
-  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--border-accent);vertical-align:middle;"></span> сегодня</span></div>`;
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:2px;">`;
+  h+=`<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:15px;font-weight:500;">${w.label}</span><span style="font-size:11px;color:var(--text-secondary);">MSK · ${w.dates[0]}–${w.dates[6]}</span></div>`;
+  h+=`<div style="display:flex;gap:5px;"><button id="s-prev" style="font-size:11px;padding:2px 8px;" ${viewIdx===0?'disabled':''}>‹</button><button id="s-next" style="font-size:11px;padding:2px 8px;" ${viewIdx===weeks.length-1?'disabled':''}>›</button></div></div>`;
+  h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text-muted);">`;
+  h+=`<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--bg-warning);vertical-align:middle;"></span> AL</span>`;
+  h+=`<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--bg-accent);vertical-align:middle;"></span> PH</span>`;
+  h+=`<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--border-accent);vertical-align:middle;"></span> сегодня</span></div>`;
   h+=renderTeam("FRP Team",w.frp,w.dates,tc);
-  h+=renderTeam("CS Team",w.cs,w.dates,tc);
   return h;
 }
 async function boot(){
