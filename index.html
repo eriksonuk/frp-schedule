@@ -25,8 +25,10 @@
   *{box-sizing:border-box}
   html,body{max-width:100%;overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:6px 0}
-  #sched-root table{width:100%;border-collapse:separate;border-spacing:2px;table-layout:fixed}
-  .wrap{overflow-x:visible}
+  #sched-root table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed}
+  #sched-root td,#sched-root th{border:2px solid var(--bg)}
+  .wrap{overflow-x:hidden;max-width:100%}
+  #sched-root{max-width:100%;overflow-x:hidden}
   button{font-family:inherit;background:transparent;border:.5px solid var(--text-muted);color:var(--text-primary);border-radius:8px;cursor:pointer}
   button:hover:not(:disabled){background:var(--surface-1)}
   button:disabled{opacity:.4;cursor:default}
