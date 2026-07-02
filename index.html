@@ -23,7 +23,8 @@
     }
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:6px}
+  html,body{max-width:100%;overflow-x:hidden}
+  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:6px 0}
   #sched-root table{width:100%;border-collapse:separate;border-spacing:2px;table-layout:fixed}
   .wrap{overflow-x:visible}
   button{font-family:inherit;background:transparent;border:.5px solid var(--text-muted);color:var(--text-primary);border-radius:8px;cursor:pointer}
@@ -115,7 +116,7 @@ function cellStyle(v,isToday){
 function renderTeam(title,rows,dates,todayCol){
   let h=`<div style="font-size:12px;font-weight:500;color:var(--text-secondary);margin:8px 0 4px;">${title}</div>`;
   h+=`<div class="wrap"><table><thead><tr><th style="width:64px;text-align:left;font-weight:500;font-size:11px;color:var(--text-muted);padding:2px 4px;">Agent</th>`;
-  DAYS.forEach((d,i)=>{const t=i===todayCol;h+=`<th style="text-align:center;font-weight:${t?'500':'400'};font-size:10px;color:${t?'var(--text-accent)':'var(--text-muted)'};padding:1px;line-height:1.2;">${d}<br><span style="font-size:9px;">${dates[i]||''}</span></th>`;});
+  DAYS.forEach((d,i)=>{const t=i===todayCol;const dm=(dates[i]||'').replace(/^(\d{2})\.(\d{2})$/,(m,a,b)=>a+'/'+(+b));h+=`<th style="text-align:center;font-weight:${t?'500':'400'};font-size:10px;color:${t?'var(--text-accent)':'var(--text-muted)'};padding:1px;line-height:1.2;">${d}<br><span style="font-size:9px;">${dm}</span></th>`;});
   h+=`</tr></thead><tbody>`;
   if(!rows.length){ h+=`<tr><td colspan="8" style="font-size:11px;color:var(--text-muted);padding:6px 4px;">нет данных</td></tr>`; }
   rows.forEach(([name,shifts])=>{
