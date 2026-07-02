@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRP / CS Schedule</title>
+<style>
+  :root{
+    --bg:#ffffff; --surface-1:#f6f6f4; --surface-2:#ffffff;
+    --text-primary:#1a1a19; --text-secondary:#52514e; --text-muted:#898781;
+    --border-accent:#378add; --text-accent:#185fa5; --bg-accent:#e6f1fb;
+    --text-warning:#854f0b; --bg-warning:#faeeda;
+    --text-danger:#a32d2d;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1a19; --surface-1:#232322; --surface-2:#2c2c2a;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+      --border-accent:#378add; --text-accent:#85b7eb; --bg-accent:#0c447c;
+      --text-warning:#fac775; --bg-warning:#633806;
+      --text-danger:#f09595;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;padding:12px}
+  #sched-root table{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;min-width:560px}
+  .wrap{overflow-x:auto}
+  button{font-family:inherit;background:transparent;border:.5px solid var(--text-muted);color:var(--text-primary);border-radius:8px;cursor:pointer}
+  button:hover:not(:disabled){background:var(--surface-1)}
+  button:disabled{opacity:.4;cursor:default}
+</style>
+</head>
+<body>
+<div id="sched-root"><div style="color:var(--text-secondary);font-size:14px;padding:1rem 0;">Загружаю расписание из Google Sheets…</div></div>
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKjo8egUqb1qaCYxfxb1uQwSNyPTyr42qpws_VAC60PnjKbUfieoPBMLnB5vDR1wKMuuHhqCvFKJPT/pub?gid=1586290333&single=true&output=csv";
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cur); cur=""; }
+      else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=""; }
+      else if(c==='\r'){}
+      else cur+=c;
+    }
+  }
+  if(cur.length||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function isTimeOrTag(v){ if(!v) return false; const t=v.trim(); if(t==="AL"||t==="PH") return true; return /^\d{1,2}:\d{2}$/.test(t); }
+function parseWeeks(rows){
+  const weeks=[];
+  for(let i=0;i<rows.length;i++){
+    const first=(rows[i][0]||"").trim();
+    if(/^Week\s*\d+/i.test(first)){
+      const label=first;
+      const dateRow=rows[i+1]||[];
+      const dates=[]; for(let d=0;d<7;d++){ dates.push((dateRow[d]||"").trim()); }
+      let monday=null;
+      const m=dates[0].match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if(m) monday=new Date(+m[3], +m[2]-1, +m[1]);
+      const teams={FRP:[],CS:[]}; let team=null;
+      for(let r=i+3;r<rows.length;r++){
+        const name=(rows[r][0]||"").trim();
+        if(/^Week\s*\d+/i.test(name)) break;
+        if(/FRP Team/i.test(name)){ team="FRP"; continue; }
+        if(/CS Team/i.test(name)){ team="CS"; continue; }
+        if(/# of agents/i.test(name)) continue;
+        if(!name) continue;
+        if(!team) continue;
+        const cells=rows[r]; const shifts=[]; let cix=1;
+        for(let d=0;d<7;d++){
+          const a=(cells[cix]||"").trim(); const b=(cells[cix+1]||"").trim();
+          if(a==="AL"||a==="PH"){ shifts.push(a); }
+          else if(isTimeOrTag(a)&&isTimeOrTag(b)){ shifts.push(a+"–"+b); }
+          else { shifts.push(""); }
+          cix+=2;
+        }
+        teams[team].push([name, shifts]);
+      }
+      weeks.push({label, dates:dates.map(d=>d.length>=5?d.slice(0,5):d), monday, frp:teams.FRP, cs:teams.CS});
+    }
+  }
+  return weeks;
+}
+function pickWeek(weeks){
+  const today=new Date(); today.setHours(0,0,0,0); let idx=0;
+  for(let i=0;i<weeks.length;i++){
+    const m=weeks[i].monday; if(!m) continue;
+    const end=new Date(m); end.setDate(end.getDate()+6);
+    if(today>=m&&today<=end){ idx=i; break; }
+    if(today<m){ idx=i; break; }
+    idx=i;
+  }
+  const m=weeks[idx].monday; let tc=-1;
+  if(m){ const diff=Math.floor((today-m)/86400000); if(diff>=0&&diff<=6) tc=diff; }
+  return {idx, todayCol:tc};
+}
+function cellStyle(v,isToday){
+  let bg="var(--surface-2)",col="var(--text-primary)",weight="400";
+  if(v===""){bg="var(--surface-1)";col="var(--text-muted)";}
+  else if(v==="AL"){bg="var(--bg-warning)";col="var(--text-warning)";weight="500";}
+  else if(v==="PH"){bg="var(--bg-accent)";col="var(--text-accent)";weight="500";}
+  const ring=isToday?"box-shadow:inset 0 0 0 2px var(--border-accent);":"";
+  return `background:${bg};color:${col};font-weight:${weight};${ring}`;
+}
+function renderTeam(title,rows,dates,todayCol){
+  let h=`<div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin:1.25rem 0 6px;">${title}</div>`;
+  h+=`<div class="wrap"><table><thead><tr><th style="width:88px;text-align:left;font-weight:500;font-size:12px;color:var(--text-muted);padding:4px 6px;">Agent</th>`;
+  DAYS.forEach((d,i)=>{const t=i===todayCol;h+=`<th style="text-align:center;font-weight:${t?'500':'400'};font-size:11px;color:${t?'var(--text-accent)':'var(--text-muted)'};padding:2px;">${d}<br><span style="font-size:10px;">${dates[i]||''}</span></th>`;});
+  h+=`</tr></thead><tbody>`;
+  if(!rows.length){ h+=`<tr><td colspan="8" style="font-size:12px;color:var(--text-muted);padding:8px 6px;">нет данных</td></tr>`; }
+  rows.forEach(([name,shifts])=>{
+    h+=`<tr><td style="font-size:12px;padding:4px 6px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</td>`;
+    for(let i=0;i<7;i++){const v=shifts[i]||"";h+=`<td style="text-align:center;font-size:11px;padding:5px 2px;border-radius:6px;${cellStyle(v,i===todayCol)}">${v||'—'}</td>`;}
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  return h;
+}
+function renderView(weeks,viewIdx,curIdx,todayCol){
+  const w=weeks[viewIdx]; const tc=(viewIdx===curIdx)?todayCol:-1; let h="";
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">`;
+  h+=`<div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:18px;font-weight:500;">${w.label}</span><span style="font-size:13px;color:var(--text-secondary);">MSK · ${w.dates[0]}–${w.dates[6]}</span></div>`;
+  h+=`<div style="display:flex;gap:6px;"><button id="s-prev" style="font-size:12px;padding:4px 10px;" ${viewIdx===0?'disabled':''}>‹ Prev</button><button id="s-next" style="font-size:12px;padding:4px 10px;" ${viewIdx===weeks.length-1?'disabled':''}>Next ›</button></div></div>`;
+  h+=`<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);margin-bottom:2px;">`;
+  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--bg-warning);vertical-align:middle;"></span> AL — отпуск</span>`;
+  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--bg-accent);vertical-align:middle;"></span> PH — праздник</span>`;
+  h+=`<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 2px var(--border-accent);vertical-align:middle;"></span> сегодня</span></div>`;
+  h+=renderTeam("FRP Team",w.frp,w.dates,tc);
+  h+=renderTeam("CS Team",w.cs,w.dates,tc);
+  return h;
+}
+async function boot(){
+  const root=document.getElementById("sched-root");
+  try{
+    const resp=await fetch(CSV_URL, {cache:"no-store"});
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const text=await resp.text();
+    const weeks=parseWeeks(parseCSV(text));
+    if(!weeks.length) throw new Error("no weeks parsed");
+    const {idx,todayCol}=pickWeek(weeks);
+    let viewIdx=idx;
+    function paint(){
+      root.innerHTML=renderView(weeks,viewIdx,idx,todayCol);
+      const p=document.getElementById("s-prev"), n=document.getElementById("s-next");
+      if(p) p.onclick=()=>{if(viewIdx>0){viewIdx--;paint();}};
+      if(n) n.onclick=()=>{if(viewIdx<weeks.length-1){viewIdx++;paint();}};
+    }
+    paint();
+  }catch(e){
+    root.innerHTML=`<div style="font-size:13px;color:var(--text-danger);padding:1rem 0;">Не удалось загрузить расписание: ${e.message}.<br><span style="color:var(--text-secondary);">Проверь, что лист опубликован (Publish to web → CSV) и ссылка доступна.</span></div>`;
+  }
+}
+boot();
+</script>
+</body>
+</html>
